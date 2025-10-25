@@ -1,0 +1,5 @@
+{
+  "name": "IA Budget Generator",
+  "description": "Uma plataforma SaaS completa para gerar orçamentos inteligentes, analisar contrapropostas e criar propostas em PDF. Apresentado através de uma landing page moderna com autenticação de usuário.",
+  "requestFramePermissions": []
+}
