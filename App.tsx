@@ -14,12 +14,15 @@ const App: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const user = authService.getCurrentUser();
-        if (user) {
-            setCurrentUser(user);
-            setCurrentPage('app');
-        }
-        setIsLoading(false);
+        const checkUser = async () => {
+            const user = await authService.getCurrentUser();
+            if (user) {
+                setCurrentUser(user);
+                setCurrentPage('app');
+            }
+            setIsLoading(false);
+        };
+        checkUser();
     }, []);
 
     const handleLoginSuccess = (user: User) => {

@@ -4,8 +4,10 @@ import { ResultSection } from '../components/ResultSection';
 import { Header } from '../components/Header';
 import { ChatModal } from '../components/ChatModal';
 import { PdfInfoModal } from '../components/PdfInfoModal';
+
 import { generateQuote, analyzeCounterOffer, getChatResponse } from '../services/geminiService';
 import { generateProposalPdf } from '../services/pdfGenerator';
+import { userService } from '../services/userService';
 import type { ProjectData, Quote, ClientCounterOffer, CounterOfferAnalysis, ChatMessage, PdfInfo, User } from '../types';
 
 interface BudgetGeneratorAppProps {
@@ -31,9 +33,14 @@ export const BudgetGeneratorApp: React.FC<BudgetGeneratorAppProps> = ({ user, on
   const [quoteForPdf, setQuoteForPdf] = useState<Quote | null>(null);
 
 
+
+
   const handleGenerateQuote = async (data: ProjectData) => {
     setIsLoadingQuote(true);
     setError(null);
+
+
+
     setQuote(null);
     setAnalysis(null);
     setProjectData(data);
@@ -42,6 +49,10 @@ export const BudgetGeneratorApp: React.FC<BudgetGeneratorAppProps> = ({ user, on
     try {
       const generatedQuote = await generateQuote(data);
       setQuote(generatedQuote);
+
+      // Increment usage after successful generation
+      await userService.incrementUsage(user.email);
+
       // Add initial greeting from the AI strategist
       setChatHistory([{
         sender: 'ai',
@@ -57,7 +68,7 @@ export const BudgetGeneratorApp: React.FC<BudgetGeneratorAppProps> = ({ user, on
 
   const handleAnalyzeCounterOffer = async (clientOffer: ClientCounterOffer) => {
     if (!projectData || !quote) return;
-    
+
     setIsLoadingAnalysis(true);
     setError(null);
     setAnalysis(null);
@@ -72,7 +83,7 @@ export const BudgetGeneratorApp: React.FC<BudgetGeneratorAppProps> = ({ user, on
       setIsLoadingAnalysis(false);
     }
   };
-  
+
   const handleReset = () => {
     setProjectData(null);
     setQuote(null);
@@ -123,9 +134,9 @@ export const BudgetGeneratorApp: React.FC<BudgetGeneratorAppProps> = ({ user, on
       <main className="container mx-auto px-4 py-8 md:py-12">
         <div className="max-w-4xl mx-auto">
           {!quote ? (
-             <QuoteForm onSubmit={handleGenerateQuote} isLoading={isLoadingQuote} />
+            <QuoteForm onSubmit={handleGenerateQuote} isLoading={isLoadingQuote} />
           ) : (
-             <ResultSection
+            <ResultSection
               quote={quote}
               analysis={analysis}
               onAnalyzeCounterOffer={handleAnalyzeCounterOffer}
@@ -133,9 +144,9 @@ export const BudgetGeneratorApp: React.FC<BudgetGeneratorAppProps> = ({ user, on
               onReset={handleReset}
               onOpenChat={() => setIsChatOpen(true)}
               onOpenPdfModal={handleOpenPdfModal}
-             />
+            />
           )}
-         
+
           {error && (
             <div className="mt-6 p-4 bg-red-500/10 text-red-300 border border-red-500/30 rounded-lg text-center">
               {error}
@@ -143,7 +154,9 @@ export const BudgetGeneratorApp: React.FC<BudgetGeneratorAppProps> = ({ user, on
           )}
         </div>
       </main>
-      
+
+
+
       {quote && (
         <>
           <ChatModal
@@ -161,9 +174,9 @@ export const BudgetGeneratorApp: React.FC<BudgetGeneratorAppProps> = ({ user, on
         </>
       )}
 
-       <footer className="text-center py-4 text-brand-text-secondary text-sm">
-          <p>&copy; {new Date().getFullYear()} IA Budget Generator. Todos os direitos reservados.</p>
-        </footer>
+      <footer className="text-center py-4 text-brand-text-secondary text-sm">
+        <p>&copy; {new Date().getFullYear()} IA Budget Generator. Todos os direitos reservados.</p>
+      </footer>
     </div>
   );
 };

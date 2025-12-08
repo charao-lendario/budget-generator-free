@@ -1,60 +1,67 @@
+import { supabase } from './supabaseClient';
 import type { User } from '../types';
-
-const USER_KEY = 'ia-budget-generator-user';
-const SESSION_KEY = 'ia-budget-generator-session';
-
-// Simulates user database
-const getUsers = (): Record<string, { passwordHash: string, user: User }> => {
-    return JSON.parse(localStorage.getItem(USER_KEY) || '{}');
-};
-
-const saveUsers = (users: Record<string, { passwordHash: string, user: User }>) => {
-    localStorage.setItem(USER_KEY, JSON.stringify(users));
-};
 
 export const authService = {
     signup: async (name: string, whatsapp: string, email: string, password: string): Promise<User> => {
-        return new Promise((resolve, reject) => {
-            setTimeout(() => { // Simulate network delay
-                const users = getUsers();
-                if (users[email]) {
-                    return reject(new Error('Este e-mail já está cadastrado.'));
-                }
-                const newUser: User = { name, whatsapp, email };
-                // In a real app, you'd hash the password. Here we just store it.
-                users[email] = { passwordHash: password, user: newUser };
-                saveUsers(users);
-                resolve(newUser);
-            }, 500);
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    name,
+                    whatsapp,
+                },
+            },
         });
+
+        if (error) {
+            throw new Error(error.message);
+        }
+
+        if (!data.user) {
+            throw new Error('Erro ao criar usuário.');
+        }
+
+        return {
+            name: data.user.user_metadata.name,
+            whatsapp: data.user.user_metadata.whatsapp,
+            email: data.user.email || '',
+        };
     },
 
     login: async (email: string, password: string): Promise<User> => {
-         return new Promise((resolve, reject) => {
-            setTimeout(() => { // Simulate network delay
-                const users = getUsers();
-                const storedUser = users[email];
-                if (storedUser && storedUser.passwordHash === password) {
-                    localStorage.setItem(SESSION_KEY, JSON.stringify(storedUser.user));
-                    resolve(storedUser.user);
-                } else {
-                    reject(new Error('E-mail ou senha inválidos.'));
-                }
-            }, 500);
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
         });
-    },
 
-    logout: (): void => {
-        localStorage.removeItem(SESSION_KEY);
-    },
-
-    getCurrentUser: (): User | null => {
-        const userJson = localStorage.getItem(SESSION_KEY);
-        if (!userJson) return null;
-        try {
-            return JSON.parse(userJson);
-        } catch (e) {
-            return null;
+        if (error) {
+            throw new Error(error.message);
         }
+
+        if (!data.user) {
+            throw new Error('Erro ao fazer login.');
+        }
+
+        return {
+            name: data.user.user_metadata.name,
+            whatsapp: data.user.user_metadata.whatsapp,
+            email: data.user.email || '',
+        };
+    },
+
+    logout: async (): Promise<void> => {
+        await supabase.auth.signOut();
+    },
+
+    getCurrentUser: async (): Promise<User | null> => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return null;
+
+        return {
+            name: session.user.user_metadata.name,
+            whatsapp: session.user.user_metadata.whatsapp,
+            email: session.user.email || '',
+        };
     }
 };
